@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronômetro de Treino com Bootstrap</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa; /* Tom de cinza claro para o fundo */
+        text-align: center;
+        padding-top: 50px;
+    }
+    .container {
+        background-color: #ffffff; /* Fundo branco para o conteúdo */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra suave */
+    }
+    #cronometro {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: #343a40; /* Tom escuro de cinza para o texto principal */
+    }
+    #contadorDescanso {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #6c757d; /* Tom médio de cinza para informações secundárias */
+    }
+    button {
+        font-size: 18px;
+        padding: 10px 20px;
+        cursor: pointer;
+        margin: 5px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div id="cronometro">00:00</div>
+            <div id="contadorDescanso">Clique em "Descanso" para finalizar a Rodada 1</div>
+            <button id="startTreino" class="btn btn-success" onclick="iniciarTreino()">Iniciar Treino</button>
+            <button id="descansoBtn" class="btn btn-primary" onclick="iniciarDescanso()" disabled>Descanso</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let cronometroGeral;
+let cronometroDescanso;
+let tempoTotal = 0;
+let tempoDescanso = 0;
+let rodadaAtual = 1;
+const rodadasTotais = 6;
+
+function iniciarTreino() {
+    document.getElementById('startTreino').disabled = true;
+    document.getElementById('descansoBtn').disabled = false;
+    cronometroGeral = setInterval(function() {
+        tempoTotal++;
+        const minutos = Math.floor(tempoTotal / 60);
+        const segundos = tempoTotal % 60;
+        document.getElementById('cronometro').textContent = 
+            `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+function iniciarDescanso() {
+    document.getElementById('descansoBtn').disabled = true;
+    tempoDescanso = rodadaAtual === 1 ? 120 : 60; // Primeira rodada tem 120s de descanso, as demais 60s
+    document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: 00:${tempoDescanso.toString().padStart(2, '0')}`;
+    cronometroDescanso = setInterval(function() {
+        tempoDescanso--;
+        if (tempoDescanso === 0) {
+            clearInterval(cronometroDescanso);
+            rodadaAtual++;
+            if (rodadaAtual <= rodadasTotais) {
+                document.getElementById('contadorDescanso').textContent = `Clique em "Descanso" para finalizar a Rodada ${rodadaAtual}`;
+                document.getElementById('descansoBtn').disabled = false;
+            } else {
+                document.getElementById('contadorDescanso').textContent = 'Treino concluído!';
+                clearInterval(cronometroGeral);
+            }
+        } else {
+            document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: 00:${tempoDescanso.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+</script>
+
+</body>
+</html>
