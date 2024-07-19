@@ -23,6 +23,10 @@
         margin-bottom: 20px;
         color: #343a40; /* Tom escuro de cinza para o texto principal */
     }
+    #tempoTreino {
+        font-size: 18px;
+        color: #6c757d; /* Tom médio de cinza para informações secundárias */
+    }
     #contadorDescanso {
         font-size: 24px;
         margin-bottom: 20px;
@@ -42,12 +46,24 @@
     <div class="row">
         <div class="col-md-12">
             <div id="cronometro">00:00</div>
-            <div id="contadorDescanso">Clique em "Descanso" para finalizar a Rodada 1</div>
+            <div id="tempoTreino">Tempo de Treino</div>
+            <div id="contadorDescanso">Clique em "Iniciar Treino" para começar</div>
             <button id="startTreino" class="btn btn-success" onclick="iniciarTreino()">Iniciar Treino</button>
             <button id="descansoBtn" class="btn btn-primary" onclick="iniciarDescanso()" disabled>Descanso</button>
+            <button id="resetarTreino" class="btn btn-danger" onclick="resetarTreino()" disabled>Resetar</button>
         </div>
     </div>
 </div>
+
+<audio id="beep">
+    <source src="beep.mp3" type="audio/mpeg">
+    Seu navegador não suporta o elemento de áudio.
+</audio>
+
+<audio id="alarme">
+    <source src="alarme.mp3" type="audio/mpeg">
+    Seu navegador não suporta o elemento de áudio.
+</audio>
 
 <script>
 let cronometroGeral;
@@ -56,39 +72,83 @@ let tempoTotal = 0;
 let tempoDescanso = 0;
 let rodadaAtual = 1;
 const rodadasTotais = 6;
+let treinoIniciado = false;
 
 function iniciarTreino() {
-    document.getElementById('startTreino').disabled = true;
-    document.getElementById('descansoBtn').disabled = false;
-    cronometroGeral = setInterval(function() {
-        tempoTotal++;
-        const minutos = Math.floor(tempoTotal / 60);
-        const segundos = tempoTotal % 60;
-        document.getElementById('cronometro').textContent = 
-            `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-    }, 1000);
+    if (!treinoIniciado) {
+        treinoIniciado = true;
+        document.getElementById('startTreino').disabled = true;
+        document.getElementById('descansoBtn').disabled = false;
+        document.getElementById('resetarTreino').disabled = false;
+
+        cronometroGeral = setInterval(function() {
+            tempoTotal++;
+            const minutos = Math.floor(tempoTotal / 60);
+            const segundos = tempoTotal % 60;
+            document.getElementById('cronometro').textContent = 
+                `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        }, 1000);
+
+        document.getElementById('tempoTreino').textContent = 'Tempo de Treino'; // Atualiza o label do cronômetro principal
+
+
+        document.getElementById('contadorDescanso').textContent = 'Clique em Descanso ao final de cada rodada';
+        //iniciarDescanso(); // Inicia o primeiro descanso automaticamente ao iniciar o treino
+    }
 }
 
 function iniciarDescanso() {
     document.getElementById('descansoBtn').disabled = true;
-    tempoDescanso = rodadaAtual === 1 ? 120 : 60; // Primeira rodada tem 120s de descanso, as demais 60s
-    document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: 00:${tempoDescanso.toString().padStart(2, '0')}`;
+    tempoDescanso = rodadaAtual === 1 ? 120 : 60; // Primeira rodada tem 4s de descanso, as demais 2s
+    
+    let minutos = Math.floor(tempoDescanso / 60);
+    let segundos = tempoDescanso % 60;
+    
+    document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: ${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    
     cronometroDescanso = setInterval(function() {
         tempoDescanso--;
+        minutos = Math.floor(tempoDescanso / 60);
+        segundos = tempoDescanso % 60;
+        
+        document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: ${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        
         if (tempoDescanso === 0) {
             clearInterval(cronometroDescanso);
             rodadaAtual++;
             if (rodadaAtual <= rodadasTotais) {
-                document.getElementById('contadorDescanso').textContent = `Clique em "Descanso" para finalizar a Rodada ${rodadaAtual}`;
+                document.getElementById('contadorDescanso').textContent = `Clique em "Descanso" ao final da Rodada ${rodadaAtual}`;
                 document.getElementById('descansoBtn').disabled = false;
+                playAlarme(); // Toca o som de alarme ao final do descanso
             } else {
                 document.getElementById('contadorDescanso').textContent = 'Treino concluído!';
                 clearInterval(cronometroGeral);
+                document.getElementById('descansoBtn').disabled = true;
+                document.getElementById('resetarTreino').disabled = true;
+                playAlarme(); // Toca o som de alarme ao final do treino
             }
-        } else {
-            document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: 00:${tempoDescanso.toString().padStart(2, '0')}`;
         }
     }, 1000);
+}
+
+function resetarTreino() {
+    treinoIniciado = false;
+    clearInterval(cronometroGeral);
+    clearInterval(cronometroDescanso);
+    tempoTotal = 0;
+    tempoDescanso = 0;
+    rodadaAtual = 1;
+    document.getElementById('cronometro').textContent = '00:00';
+    document.getElementById('tempoTreino').textContent = 'Tempo de Treino'; // Reinicia o label do cronômetro principal
+    document.getElementById('contadorDescanso').textContent = 'Clique em "Iniciar Treino" para começar';
+    document.getElementById('startTreino').disabled = false;
+    document.getElementById('descansoBtn').disabled = true;
+    document.getElementById('resetarTreino').disabled = true;
+}
+
+function playAlarme() {
+    const alarme = document.getElementById('alarme');
+    alarme.play();
 }
 </script>
 
