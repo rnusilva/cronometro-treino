@@ -1,156 +1,216 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cronômetro de Treino com Bootstrap</title>
+<title>Planejamento de Treino</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <style>
     body {
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa; /* Tom de cinza claro para o fundo */
-        text-align: center;
-        padding-top: 50px;
+        background-color: #f8f9fa;
     }
     .container {
-        background-color: #ffffff; /* Fundo branco para o conteúdo */
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra suave */
+        max-width: 600px;
+    }
+    .mt-3 { margin-top: 1rem; }
+    .btn-primary, .btn-success, .btn-danger {
+        background-color: #ff7043;
+        border-color: #ff7043;
+    }
+    .btn-primary:hover, .btn-success:hover, .btn-danger:hover {
+        background-color: #ff5722;
+        border-color: #ff5722;
+    }
+    .card-header {
+        background-color: #1976d2;
+        color: white;
+    }
+    .card-body {
+        background-color: #e3f2fd;
     }
     #cronometro {
-        font-size: 48px;
-        margin-bottom: 20px;
-        color: #343a40; /* Tom escuro de cinza para o texto principal */
-    }
-    #tempoTreino {
-        font-size: 18px;
-        color: #6c757d; /* Tom médio de cinza para informações secundárias */
-    }
-    #contadorDescanso {
         font-size: 24px;
-        margin-bottom: 20px;
-        color: #6c757d; /* Tom médio de cinza para informações secundárias */
+        margin-bottom: 10px;
+        color: #1976d2;
     }
-    button {
+    .contador-regressivo {
         font-size: 18px;
-        padding: 10px 20px;
-        cursor: pointer;
-        margin: 5px;
+        margin-bottom: 5px;
+        color: #ff7043;
+    }
+    .finalizado {
+        font-size: 24px;
+        color: #d32f2f;
+        font-weight: bold;
+        text-align: center;
     }
 </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4858287864290242"
+     crossorigin="anonymous"></script>
 </head>
 <body>
-
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div id="cronometro">00:00</div>
-            <div id="tempoTreino">Tempo de Treino</div>
-            <div id="contadorDescanso">Clique em "Iniciar Treino" para começar</div>
-            <button id="startTreino" class="btn btn-success" onclick="iniciarTreino()">Iniciar Treino</button>
-            <button id="descansoBtn" class="btn btn-primary" onclick="iniciarDescanso()" disabled>Descanso</button>
-            <button id="resetarTreino" class="btn btn-danger" onclick="resetarTreino()" disabled>Resetar</button>
-        </div>
+<div class="container mt-5 text-center">
+    <h2 class="mb-4" style="color: #1976d2;">Planejamento de Treino</h2>
+    
+    <div id="formularioInicial">
+        <label for="numExercicios" class="form-label">Número de Exercícios:</label>
+        <input type="number" id="numExercicios" min="1" class="form-control">
+        <button class="btn btn-primary mt-3" onclick="criarFormularios()">Criar Formulários</button>
     </div>
+    
+    <div id="formulariosExercicios" class="mt-3"></div>
+    
+    <button id="salvarPlanejamento" class="btn btn-success mt-3" onclick="coletarDados()">Salvar Planejamento</button>
+    <center><button id="iniciarTreino" class="btn btn-primary mt-3" style="display:none;" onclick="iniciarTreino()">Iniciar Treino</button></center>
+    <center><button id="botaoDescanso" class="btn btn-danger mt-3" style="display:none;" onclick="iniciarDescanso()">Descanso</button><center>
+    
+    <div id="cronometro">Tempo de Treino: 00:00:00</div>
+    <div id="informacaoAtual" class="mt-3" style="color: #1976d2; font-size: 20px;"></div>
+    <div id="contadorDescanso" class="contador-regressivo"></div>
+    <div id="mensagemFinalizacao" class="finalizado mt-3"></div>
 </div>
 
-<audio id="beep">
-    <source src="beep.mp3" type="audio/mpeg">
+<audio id="alarme">
+    <source src="alarm.mp3" type="audio/mp3">
     Seu navegador não suporta o elemento de áudio.
 </audio>
 
-<audio id="alarme">
-    <source src="alarme.mp3" type="audio/mpeg">
-    Seu navegador não suporta o elemento de áudio.
-</audio>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-let cronometroGeral;
-let cronometroDescanso;
-let tempoTotal = 0;
-let tempoDescanso = 0;
-let rodadaAtual = 1;
-const rodadasTotais = 6;
-let treinoIniciado = false;
+    let dados = [];
+    let cronometro;
+    let tempoInicial;
+    let indiceExercicio = 0;
+    let indiceSerie = 0;
 
-function iniciarTreino() {
-    if (!treinoIniciado) {
-        treinoIniciado = true;
-        document.getElementById('startTreino').disabled = true;
-        document.getElementById('descansoBtn').disabled = false;
-        document.getElementById('resetarTreino').disabled = false;
-
-        cronometroGeral = setInterval(function() {
-            tempoTotal++;
-            const minutos = Math.floor(tempoTotal / 60);
-            const segundos = tempoTotal % 60;
-            document.getElementById('cronometro').textContent = 
-                `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-        }, 1000);
-
-        document.getElementById('tempoTreino').textContent = 'Tempo de Treino'; // Atualiza o label do cronômetro principal
-
-
-        document.getElementById('contadorDescanso').textContent = 'Clique em Descanso ao final de cada rodada';
-        //iniciarDescanso(); // Inicia o primeiro descanso automaticamente ao iniciar o treino
+    function criarFormularios() {
+        var numExercicios = document.getElementById('numExercicios').value;
+        var formulariosHTML = '';
+        
+        for (var i = 1; i <= numExercicios; i++) {
+            formulariosHTML += `
+                <div class="card mt-3">
+                    <div class="card-header">Exercício ${i}</div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="seriesExercicio${i}">Número de Séries:</label>
+                            <input type="number" id="seriesExercicio${i}" min="1" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="descansoExercicio${i}">Intervalo de Descanso (seg):</label>
+                            <input type="number" id="descansoExercicio${i}" min="0" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('formulariosExercicios').innerHTML = formulariosHTML;
     }
-}
 
-function iniciarDescanso() {
-    document.getElementById('descansoBtn').disabled = true;
-    tempoDescanso = rodadaAtual === 1 ? 120 : 60; // Primeira rodada tem 4s de descanso, as demais 2s
-    
-    let minutos = Math.floor(tempoDescanso / 60);
-    let segundos = tempoDescanso % 60;
-    
-    document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: ${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-    
-    cronometroDescanso = setInterval(function() {
-        tempoDescanso--;
-        minutos = Math.floor(tempoDescanso / 60);
-        segundos = tempoDescanso % 60;
+    function coletarDados() {
+        var numExercicios = document.getElementById('numExercicios').value;
+        dados = [];
         
-        document.getElementById('contadorDescanso').textContent = `Descanso da Rodada ${rodadaAtual}: ${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-        
-        if (tempoDescanso === 0) {
-            clearInterval(cronometroDescanso);
-            rodadaAtual++;
-            if (rodadaAtual <= rodadasTotais) {
-                document.getElementById('contadorDescanso').textContent = `Clique em "Descanso" ao final da Rodada ${rodadaAtual}`;
-                document.getElementById('descansoBtn').disabled = false;
-                playAlarme(); // Toca o som de alarme ao final do descanso
+        for (var i = 1; i <= numExercicios; i++) {
+            var series = document.getElementById('seriesExercicio' + i).value;
+            var descanso = document.getElementById('descansoExercicio' + i).value;
+            
+            if (series && descanso) {
+                dados.push({
+                    exercicio: i,
+                    series: parseInt(series),
+                    descanso: parseInt(descanso)
+                });
             } else {
-                document.getElementById('contadorDescanso').textContent = 'Treino concluído!';
-                clearInterval(cronometroGeral);
-                document.getElementById('descansoBtn').disabled = true;
-                document.getElementById('resetarTreino').disabled = true;
-                playAlarme(); // Toca o som de alarme ao final do treino
+                alert('Por favor, preencha todos os campos para o Exercício ' + i);
+                return;
             }
         }
-    }, 1000);
-}
+        
+        console.log(dados);
+        alert('Planejamento salvo com sucesso!');
+        document.getElementById('formulariosExercicios').style.display = 'none';
+        document.getElementById('formularioInicial').style.display = 'none';
+        document.getElementById('salvarPlanejamento').style.display = 'none';
+        document.getElementById('iniciarTreino').style.display = 'block';
+    }
 
-function resetarTreino() {
-    treinoIniciado = false;
-    clearInterval(cronometroGeral);
-    clearInterval(cronometroDescanso);
-    tempoTotal = 0;
-    tempoDescanso = 0;
-    rodadaAtual = 1;
-    document.getElementById('cronometro').textContent = '00:00';
-    document.getElementById('tempoTreino').textContent = 'Tempo de Treino'; // Reinicia o label do cronômetro principal
-    document.getElementById('contadorDescanso').textContent = 'Clique em "Iniciar Treino" para começar';
-    document.getElementById('startTreino').disabled = false;
-    document.getElementById('descansoBtn').disabled = true;
-    document.getElementById('resetarTreino').disabled = true;
-}
+    function iniciarTreino() {
+        tempoInicial = Date.now();
+        cronometro = setInterval(atualizarCronometro, 1000); // Atualiza a cada segundo (1000 ms)
+        document.getElementById('botaoDescanso').style.display = 'block';
+        document.getElementById('iniciarTreino').style.display = 'none';
+        atualizarInformacaoAtual();
+    }
 
-function playAlarme() {
-    const alarme = document.getElementById('alarme');
-    alarme.play();
-}
+    function atualizarCronometro() {
+        let tempoAtual = Date.now();
+        let tempoDecorrido = tempoAtual - tempoInicial;
+        let segundos = Math.floor((tempoDecorrido / 1000) % 60);
+        let minutos = Math.floor((tempoDecorrido / (1000 * 60)) % 60);
+        let horas = Math.floor((tempoDecorrido / (1000 * 60 * 60)) % 24);
+        
+        segundos = segundos < 10 ? '0' + segundos : segundos;
+        minutos = minutos < 10 ? '0' + minutos : minutos;
+        horas = horas < 10 ? '0' + horas : horas;
+        
+        document.getElementById('cronometro').textContent = `Tempo de Treino: ${horas}:${minutos}:${segundos}`;
+    }
+
+    function iniciarDescanso() {
+        if (indiceExercicio < dados.length) {
+            var series = dados[indiceExercicio].series;
+            var descanso = dados[indiceExercicio].descanso;
+            
+            if (indiceSerie < series) {
+                var contador = descanso;
+                var intervalo = setInterval(() => {
+                    document.getElementById('contadorDescanso').textContent = `Descanso - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}: ${contador} seg`;
+                    contador--;
+                    
+                    if (contador < 0) {
+                        clearInterval(intervalo);
+                        document.getElementById('contadorDescanso').textContent = `Descanso concluído - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}`;
+                        
+                        // Reproduz o som de alarme
+                        document.getElementById('alarme').play();
+                        
+                        indiceSerie++;
+                        
+                        if (indiceSerie >= series) {
+                            indiceExercicio++;
+                            indiceSerie = 0;
+                        }
+                        
+                        if (indiceExercicio >= dados.length) {
+                            finalizarTreino();
+                        } else {
+                            atualizarInformacaoAtual();
+                            document.getElementById('botaoDescanso').disabled = false;
+                        }
+                    }
+                }, 1000);
+                
+                document.getElementById('botaoDescanso').disabled = true;
+            }
+        }
+    }
+
+    function atualizarInformacaoAtual() {
+        if (indiceExercicio < dados.length) {
+            document.getElementById('informacaoAtual').textContent = `Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}`;
+        }
+    }
+
+    function finalizarTreino() {
+        clearInterval(cronometro);
+        document.getElementById('mensagemFinalizacao').textContent = 'Treino concluído!';
+        document.getElementById('botaoDescanso').disabled = true;
+    }
 </script>
-
 </body>
 </html>
