@@ -100,9 +100,14 @@
                             <input type="number" id="seriesExercicio${i}" min="1" class="form-control">
                         </div>
                         <div class="form-group">
+                            <label for="repeticoesExercicio${i}">Número de Repetições:</label>
+                            <input type="number" id="repeticoesExercicio${i}" min="1" class="form-control">
+                        </div>
+                        <div class="form-group">
                             <label for="descansoExercicio${i}">Intervalo de Descanso (seg):</label>
                             <input type="number" id="descansoExercicio${i}" min="0" class="form-control">
                         </div>
+                        <div id="totalRepeticoesExercicio${i}" style="font-size: 14px; color: #777;"></div>
                     </div>
                 </div>
             `;
@@ -111,20 +116,33 @@
         document.getElementById('formulariosExercicios').innerHTML = formulariosHTML;
     }
 
+    var reptotal = 0;
+
     function coletarDados() {
         var numExercicios = document.getElementById('numExercicios').value;
         dados = [];
         
         for (var i = 1; i <= numExercicios; i++) {
             var series = document.getElementById('seriesExercicio' + i).value;
+            var repeticoes = document.getElementById('repeticoesExercicio' + i).value;
             var descanso = document.getElementById('descansoExercicio' + i).value;
             
-            if (series && descanso) {
+            if (series && repeticoes && descanso) {
+                // Calcular quantas repetições cada série terá (arredondando para cima)
+                var repeticoesPorSerie = Math.ceil(repeticoes / series);
+                reptotal = repeticoesPorSerie*series;
+                var totalRepeticoes = repeticoes; // Total de repetições para exibir
+                
                 dados.push({
                     exercicio: i,
                     series: parseInt(series),
+                    repeticoes: parseInt(repeticoes),
+                    repeticoesPorSerie: repeticoesPorSerie,
                     descanso: parseInt(descanso)
                 });
+                
+                // Exibir o total de repetições para o exercício atual
+                document.getElementById(`totalRepeticoesExercicio${i}`).textContent = `(Total: ${totalRepeticoes} repetições)`;
             } else {
                 alert('Por favor, preencha todos os campos para o Exercício ' + i);
                 return;
@@ -163,46 +181,46 @@
 
     function iniciarDescanso() {
         if (indiceExercicio < dados.length) {
-            var series = dados[indiceExercicio].series;
+            var repeticoes = dados[indiceExercicio].repeticoes;
             var descanso = dados[indiceExercicio].descanso;
+            var repeticoesPorSerie = dados[indiceExercicio].repeticoesPorSerie;
             
-            if (indiceSerie < series) {
-                var contador = descanso;
-                var intervalo = setInterval(() => {
-                    document.getElementById('contadorDescanso').textContent = `Descanso - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}: ${contador} seg`;
-                    contador--;
-                    
-                    if (contador < 0) {
-                        clearInterval(intervalo);
-                        document.getElementById('contadorDescanso').textContent = `Descanso concluído - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}`;
-                        
-                        // Reproduz o som de alarme
-                        document.getElementById('alarme').play();
-                        
-                        indiceSerie++;
-                        
-                        if (indiceSerie >= series) {
-                            indiceExercicio++;
-                            indiceSerie = 0;
-                        }
-                        
-                        if (indiceExercicio >= dados.length) {
-                            finalizarTreino();
-                        } else {
-                            atualizarInformacaoAtual();
-                            document.getElementById('botaoDescanso').disabled = false;
-                        }
-                    }
-                }, 1000);
+            var contador = descanso;
+            var intervalo = setInterval(() => {
+                document.getElementById('contadorDescanso').textContent = `Descanso - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}, ${repeticoesPorSerie} repetições: ${contador} seg`;
+                contador--;
                 
-                document.getElementById('botaoDescanso').disabled = true;
-            }
+                if (contador < 0) {
+                    clearInterval(intervalo);
+                    document.getElementById('contadorDescanso').textContent = `Descanso concluído - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}, ${repeticoesPorSerie} repetições`;
+                    
+                    // Reproduz o som de alarme
+                    document.getElementById('alarme').play();
+                    
+                    indiceSerie++;
+                    
+                    if (indiceSerie >= dados[indiceExercicio].series) {
+                        indiceExercicio++;
+                        indiceSerie = 0;
+                    }
+                    
+                    if (indiceExercicio >= dados.length) {
+                        finalizarTreino();
+                    } else {
+                        atualizarInformacaoAtual();
+                        document.getElementById('botaoDescanso').disabled = false;
+                    }
+                }
+            }, 1000);
+            
+            document.getElementById('botaoDescanso').disabled = true;
         }
     }
 
     function atualizarInformacaoAtual() {
         if (indiceExercicio < dados.length) {
-            document.getElementById('informacaoAtual').textContent = `Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}`;
+            var repeticoesPorSerie = dados[indiceExercicio].repeticoesPorSerie;
+            document.getElementById('informacaoAtual').textContent = `Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}, ${repeticoesPorSerie} repetições`;
         }
     }
 
