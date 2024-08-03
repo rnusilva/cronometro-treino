@@ -187,12 +187,12 @@
             
             var contador = descanso;
             var intervalo = setInterval(() => {
-                document.getElementById('contadorDescanso').textContent = `Descanso - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}, ${repeticoesPorSerie} repetições: ${contador} seg`;
+                document.getElementById('contadorDescanso').textContent = `Descanse por: ${contador} seg`;
                 contador--;
                 
                 if (contador < 0) {
                     clearInterval(intervalo);
-                    document.getElementById('contadorDescanso').textContent = `Descanso concluído - Exercício ${indiceExercicio + 1}, Série ${indiceSerie + 1}, ${repeticoesPorSerie} repetições`;
+                    document.getElementById('contadorDescanso').textContent = `Faça a próxima série`;
                     
                     // Reproduz o som de alarme
                     document.getElementById('alarme').play();
